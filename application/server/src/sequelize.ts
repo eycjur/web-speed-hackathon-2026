@@ -6,22 +6,21 @@ import { Sequelize } from "sequelize";
 
 import { initModels } from "@web-speed-hackathon-2026/server/src/models";
 import { DATABASE_PATH } from "@web-speed-hackathon-2026/server/src/paths";
-import { backfillImageAlts } from "@web-speed-hackathon-2026/server/src/utils/image_alt";
 
 let _sequelize: Sequelize | null = null;
 
-async function ensurePerformanceIndexes(sequelize: Sequelize) {
+async function createRuntimeIndexes(sequelize: Sequelize) {
   await sequelize.query(
-    "CREATE INDEX IF NOT EXISTS idx_dm_conversations_initiator_id ON `DirectMessageConversations` (`initiatorId`)",
+    "CREATE INDEX IF NOT EXISTS idx_dm_messages_conversation_created_at ON DirectMessages (conversationId, createdAt DESC)",
   );
   await sequelize.query(
-    "CREATE INDEX IF NOT EXISTS idx_dm_conversations_member_id ON `DirectMessageConversations` (`memberId`)",
+    "CREATE INDEX IF NOT EXISTS idx_dm_messages_conversation_is_read_sender ON DirectMessages (conversationId, isRead, senderId)",
   );
   await sequelize.query(
-    "CREATE INDEX IF NOT EXISTS idx_dm_messages_conversation_created_at ON `DirectMessages` (`conversationId`, `createdAt` DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_dm_conversations_initiator_id ON DirectMessageConversations (initiatorId)",
   );
   await sequelize.query(
-    "CREATE INDEX IF NOT EXISTS idx_dm_messages_conversation_is_read_sender ON `DirectMessages` (`conversationId`, `isRead`, `senderId`)",
+    "CREATE INDEX IF NOT EXISTS idx_dm_conversations_member_id ON DirectMessageConversations (memberId)",
   );
 }
 
@@ -42,8 +41,7 @@ export async function initializeSequelize() {
     storage: TEMP_PATH,
   });
   initModels(_sequelize);
-  await ensurePerformanceIndexes(_sequelize);
-  await backfillImageAlts();
+  await createRuntimeIndexes(_sequelize);
 }
 
 export function getSequelize() {
