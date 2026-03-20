@@ -1,3 +1,4 @@
+import { DeferredMount } from "@web-speed-hackathon-2026/client/src/components/foundation/DeferredMount";
 import { Link } from "@web-speed-hackathon-2026/client/src/components/foundation/Link";
 import { ImageArea } from "@web-speed-hackathon-2026/client/src/components/post/ImageArea";
 import { MovieArea } from "@web-speed-hackathon-2026/client/src/components/post/MovieArea";
@@ -52,19 +53,19 @@ export const PostItem = ({ post }: Props) => {
             <TranslatableText text={post.text} />
           </div>
           {post.images?.length > 0 ? (
-            <div className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full">
               <ImageArea images={post.images} />
-            </div>
+            </DeferredMount>
           ) : null}
           {post.movie ? (
-            <div className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full">
               <MovieArea movie={post.movie} />
-            </div>
+            </DeferredMount>
           ) : null}
           {post.sound ? (
-            <div className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full">
               <SoundArea sound={post.sound} />
-            </div>
+            </DeferredMount>
           ) : null}
           <p className="mt-2 text-sm sm:mt-4">
             <Link className="text-cax-text-muted hover:underline" to={`/posts/${post.id}`}>

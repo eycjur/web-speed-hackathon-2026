@@ -1,6 +1,7 @@
 import { MouseEventHandler, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 
+import { DeferredMount } from "@web-speed-hackathon-2026/client/src/components/foundation/DeferredMount";
 import { ImageArea } from "@web-speed-hackathon-2026/client/src/components/post/ImageArea";
 import { MovieArea } from "@web-speed-hackathon-2026/client/src/components/post/MovieArea";
 import { SoundArea } from "@web-speed-hackathon-2026/client/src/components/post/SoundArea";
@@ -85,19 +86,19 @@ export const TimelineItem = ({ post }: Props) => {
             <TranslatableText text={post.text} />
           </div>
           {post.images?.length > 0 ? (
-            <div className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full">
               <ImageArea images={post.images} />
-            </div>
+            </DeferredMount>
           ) : null}
           {post.movie ? (
-            <div className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full">
               <MovieArea movie={post.movie} />
-            </div>
+            </DeferredMount>
           ) : null}
           {post.sound ? (
-            <div className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full">
               <SoundArea sound={post.sound} />
-            </div>
+            </DeferredMount>
           ) : null}
         </div>
       </div>
