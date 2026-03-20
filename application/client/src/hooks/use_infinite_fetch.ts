@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const LIMIT = 30;
+const DEFAULT_LIMIT = 30;
+
+interface Options {
+  limit?: number;
+}
 
 interface ReturnValues<T> {
   data: Array<T>;
@@ -12,9 +16,11 @@ interface ReturnValues<T> {
 export function useInfiniteFetch<T>(
   apiPath: string,
   fetcher: (apiPath: string) => Promise<T[]>,
+  options?: Options,
 ): ReturnValues<T> {
   const internalRef = useRef({ generation: 0, hasReachedEnd: false, isLoading: false, offset: 0 });
   const fetcherRef = useRef(fetcher);
+  const limit = options?.limit ?? DEFAULT_LIMIT;
 
   const [result, setResult] = useState<Omit<ReturnValues<T>, "fetchMore">>({
     data: [],
@@ -28,10 +34,10 @@ export function useInfiniteFetch<T>(
 
   const createPaginatedPath = useCallback((offset: number) => {
     const url = new URL(apiPath, window.location.origin);
-    url.searchParams.set("limit", String(LIMIT));
+    url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
     return `${url.pathname}${url.search}`;
-  }, [apiPath]);
+  }, [apiPath, limit]);
 
   const fetchMore = useCallback(() => {
     const { generation, hasReachedEnd, isLoading, offset } = internalRef.current;
@@ -63,9 +69,9 @@ export function useInfiniteFetch<T>(
         }));
         internalRef.current = {
           generation,
-          hasReachedEnd: nextData.length < LIMIT,
+          hasReachedEnd: nextData.length < limit,
           isLoading: false,
-          offset: offset + LIMIT,
+          offset: offset + limit,
         };
       },
       (error) => {
