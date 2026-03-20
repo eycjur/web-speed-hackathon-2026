@@ -1,17 +1,25 @@
 import { DeferredMount } from "@web-speed-hackathon-2026/client/src/components/foundation/DeferredMount";
 import { Link } from "@web-speed-hackathon-2026/client/src/components/foundation/Link";
 import { ImageArea } from "@web-speed-hackathon-2026/client/src/components/post/ImageArea";
+import {
+  AspectRatioMediaPlaceholder,
+  SoundMediaPlaceholder,
+} from "@web-speed-hackathon-2026/client/src/components/post/MediaPlaceholder";
 import { MovieArea } from "@web-speed-hackathon-2026/client/src/components/post/MovieArea";
 import { SoundArea } from "@web-speed-hackathon-2026/client/src/components/post/SoundArea";
 import { TranslatableText } from "@web-speed-hackathon-2026/client/src/components/post/TranslatableText";
 import { formatJaDate, toIsoDateTime } from "@web-speed-hackathon-2026/client/src/utils/format_datetime";
 import { getProfileImagePath } from "@web-speed-hackathon-2026/client/src/utils/get_path";
+import { getImageAspectRatio, getMovieAspectRatio } from "@web-speed-hackathon-2026/client/src/utils/media_aspect_ratio";
 
 interface Props {
   post: Models.Post;
 }
 
 export const PostItem = ({ post }: Props) => {
+  const imageAspectRatio = getImageAspectRatio(post.images[0]);
+  const movieAspectRatio = getMovieAspectRatio(post.movie);
+
   return (
     <article className="px-1 sm:px-4">
       <div className="border-cax-border border-b px-4 pt-4 pb-4">
@@ -53,17 +61,33 @@ export const PostItem = ({ post }: Props) => {
             <TranslatableText text={post.text} />
           </div>
           {post.images?.length > 0 ? (
-            <DeferredMount className="relative mt-2 w-full">
+            <DeferredMount
+              className="relative mt-2 w-full"
+              placeholder={
+                <AspectRatioMediaPlaceholder
+                  aspectHeight={imageAspectRatio.aspectHeight}
+                  aspectWidth={imageAspectRatio.aspectWidth}
+                />
+              }
+            >
               <ImageArea images={post.images} />
             </DeferredMount>
           ) : null}
           {post.movie ? (
-            <DeferredMount className="relative mt-2 w-full">
+            <DeferredMount
+              className="relative mt-2 w-full"
+              placeholder={
+                <AspectRatioMediaPlaceholder
+                  aspectHeight={movieAspectRatio.aspectHeight}
+                  aspectWidth={movieAspectRatio.aspectWidth}
+                />
+              }
+            >
               <MovieArea movie={post.movie} />
             </DeferredMount>
           ) : null}
           {post.sound ? (
-            <DeferredMount className="relative mt-2 w-full">
+            <DeferredMount className="relative mt-2 w-full" placeholder={<SoundMediaPlaceholder />}>
               <SoundArea sound={post.sound} />
             </DeferredMount>
           ) : null}

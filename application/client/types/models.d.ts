@@ -27,7 +27,9 @@ declare namespace Models {
 
   interface Image {
     alt: string;
+    height?: number | null;
     id: string;
+    width?: number | null;
   }
 
   interface Sound {
@@ -38,7 +40,9 @@ declare namespace Models {
   }
 
   interface Movie {
+    height?: number | null;
     id: string;
+    width?: number | null;
   }
 
   interface Comment {

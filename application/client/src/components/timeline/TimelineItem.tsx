@@ -3,11 +3,16 @@ import { Link, useNavigate } from "react-router";
 
 import { DeferredMount } from "@web-speed-hackathon-2026/client/src/components/foundation/DeferredMount";
 import { ImageArea } from "@web-speed-hackathon-2026/client/src/components/post/ImageArea";
+import {
+  AspectRatioMediaPlaceholder,
+  SoundMediaPlaceholder,
+} from "@web-speed-hackathon-2026/client/src/components/post/MediaPlaceholder";
 import { MovieArea } from "@web-speed-hackathon-2026/client/src/components/post/MovieArea";
 import { SoundArea } from "@web-speed-hackathon-2026/client/src/components/post/SoundArea";
 import { TranslatableText } from "@web-speed-hackathon-2026/client/src/components/post/TranslatableText";
 import { formatJaDate, toIsoDateTime } from "@web-speed-hackathon-2026/client/src/utils/format_datetime";
 import { getProfileImagePath } from "@web-speed-hackathon-2026/client/src/utils/get_path";
+import { getImageAspectRatio, getMovieAspectRatio } from "@web-speed-hackathon-2026/client/src/utils/media_aspect_ratio";
 
 const isClickedAnchorOrButton = (target: EventTarget | null, currentTarget: Element): boolean => {
   while (target !== null && target instanceof Element) {
@@ -34,6 +39,8 @@ interface Props {
 
 export const TimelineItem = ({ post, prioritizeMedia = false }: Props) => {
   const navigate = useNavigate();
+  const imageAspectRatio = getImageAspectRatio(post.images[0]);
+  const movieAspectRatio = getMovieAspectRatio(post.movie);
 
   /**
    * ボタンやリンク以外の箇所をクリックしたとき かつ 文字が選択されてないとき、投稿詳細ページに遷移する
@@ -89,10 +96,18 @@ export const TimelineItem = ({ post, prioritizeMedia = false }: Props) => {
           {post.images?.length > 0 ? (
             prioritizeMedia ? (
               <div className="relative mt-2 w-full">
-                <ImageArea images={post.images} prioritizeFirstImage />
+                <ImageArea images={post.images} prioritizeFirstImage={true} />
               </div>
             ) : (
-              <DeferredMount className="relative mt-2 w-full">
+              <DeferredMount
+                className="relative mt-2 w-full"
+                placeholder={
+                  <AspectRatioMediaPlaceholder
+                    aspectHeight={imageAspectRatio.aspectHeight}
+                    aspectWidth={imageAspectRatio.aspectWidth}
+                  />
+                }
+              >
                 <ImageArea images={post.images} />
               </DeferredMount>
             )
@@ -100,10 +115,18 @@ export const TimelineItem = ({ post, prioritizeMedia = false }: Props) => {
           {post.movie ? (
             prioritizeMedia ? (
               <div className="relative mt-2 w-full">
-                <MovieArea movie={post.movie} prioritizeLoad />
+                <MovieArea movie={post.movie} prioritizeLoad={true} />
               </div>
             ) : (
-              <DeferredMount className="relative mt-2 w-full">
+              <DeferredMount
+                className="relative mt-2 w-full"
+                placeholder={
+                  <AspectRatioMediaPlaceholder
+                    aspectHeight={movieAspectRatio.aspectHeight}
+                    aspectWidth={movieAspectRatio.aspectWidth}
+                  />
+                }
+              >
                 <MovieArea movie={post.movie} />
               </DeferredMount>
             )
@@ -114,7 +137,10 @@ export const TimelineItem = ({ post, prioritizeMedia = false }: Props) => {
                 <SoundArea sound={post.sound} />
               </div>
             ) : (
-              <DeferredMount className="relative mt-2 w-full">
+              <DeferredMount
+                className="relative mt-2 w-full"
+                placeholder={<SoundMediaPlaceholder />}
+              >
                 <SoundArea sound={post.sound} />
               </DeferredMount>
             )

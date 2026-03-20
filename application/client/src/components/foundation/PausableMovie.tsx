@@ -5,6 +5,8 @@ import { AspectRatioBox } from "@web-speed-hackathon-2026/client/src/components/
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
 
 interface Props {
+  aspectHeight: number;
+  aspectWidth: number;
   deferMount?: boolean;
   poster?: string;
   preload?: "auto" | "metadata" | "none";
@@ -16,6 +18,8 @@ interface Props {
  * クリックすると再生・一時停止を切り替えます。
  */
 export const PausableMovie = ({
+  aspectHeight,
+  aspectWidth,
   deferMount = false,
   poster,
   preload = "metadata",
@@ -149,7 +153,7 @@ export const PausableMovie = ({
   }, []);
 
   return (
-    <AspectRatioBox aspectHeight={1} aspectWidth={1}>
+    <AspectRatioBox aspectHeight={aspectHeight} aspectWidth={aspectWidth}>
       <button
         ref={wrapperRef}
         aria-label="動画プレイヤー"
@@ -184,7 +188,7 @@ export const PausableMovie = ({
         )}
         <div
           className={classNames(
-            "absolute left-1/2 top-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-cax-overlay/50 text-3xl text-cax-surface-raised -translate-x-1/2 -translate-y-1/2",
+            "absolute top-1/2 left-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cax-overlay/50 text-3xl text-cax-surface-raised",
             {
               "opacity-0 group-hover:opacity-100": isPlaying,
             },

@@ -334,12 +334,18 @@ paths:
                 required:
                   - id
                   - alt
+                  - width
+                  - height
                 properties:
                   id:
                     type: string
                     format: uuid
                   alt:
                     type: string
+                  width:
+                    type: integer
+                  height:
+                    type: integer
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -370,10 +376,16 @@ paths:
                 type: object
                 required:
                   - id
+                  - width
+                  - height
                 properties:
                   id:
                     type: string
                     format: uuid
+                  width:
+                    type: integer
+                  height:
+                    type: integer
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -857,21 +869,29 @@ components:
 
     Image:
       type: object
-      required: [id, alt]
+      required: [id, alt, width, height]
       properties:
         id:
           type: string
           format: uuid
         alt:
           type: string
+        width:
+          type: integer
+        height:
+          type: integer
 
     Movie:
       type: object
-      required: [id]
+      required: [id, width, height]
       properties:
         id:
           type: string
           format: uuid
+        width:
+          type: integer
+        height:
+          type: integer
 
     Sound:
       type: object
