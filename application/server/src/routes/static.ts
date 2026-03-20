@@ -90,6 +90,13 @@ function buildPostPreloadTag(post: Post): string {
   return "";
 }
 
+function renderTermsIndexHtml(): string {
+  return clientIndexHtml.replace(
+    /<main class="app-shell__main">[\s\S]*?<\/main>/,
+    '<main class="app-shell__main"><h1 class="app-shell__title">利用規約</h1></main>',
+  );
+}
+
 async function renderPostIndexHtml(postId: string): Promise<string> {
   const post = await Post.findByPk(postId);
   if (post == null) {
@@ -120,6 +127,11 @@ staticRouter.get("/posts/:postId", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+staticRouter.get("/terms", (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+  res.type("html").send(renderTermsIndexHtml());
 });
 
 // SPA 対応のため、ファイルが存在しないときに index.html を返す
