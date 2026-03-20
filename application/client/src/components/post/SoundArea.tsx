@@ -7,7 +7,7 @@ interface Props {
 export const SoundArea = ({ sound }: Props) => {
   return (
     <div
-      className="border-cax-border relative h-full w-full overflow-hidden rounded-lg border"
+      className="border-cax-border relative h-24 w-full overflow-hidden rounded-lg border sm:h-28"
       data-sound-area
     >
       <SoundPlayer sound={sound} />

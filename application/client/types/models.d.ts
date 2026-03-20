@@ -27,17 +27,22 @@ declare namespace Models {
 
   interface Image {
     alt: string;
+    height?: number | null;
     id: string;
+    width?: number | null;
   }
 
   interface Sound {
     artist: string;
     id: string;
     title: string;
+    waveform?: number[];
   }
 
   interface Movie {
+    height?: number | null;
     id: string;
+    width?: number | null;
   }
 
   interface Comment {

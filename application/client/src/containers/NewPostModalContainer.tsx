@@ -20,7 +20,15 @@ interface SubmitParams {
 
 interface UploadedImage {
   alt: string;
+  height: number;
   id: string;
+  width: number;
+}
+
+interface UploadedMovie {
+  height: number;
+  id: string;
+  width: number;
 }
 
 async function sendNewPost({ images, movie, sound, text }: SubmitParams): Promise<Models.Post> {
@@ -28,7 +36,7 @@ async function sendNewPost({ images, movie, sound, text }: SubmitParams): Promis
     images: images
       ? await Promise.all(images.map((image) => sendFile<UploadedImage>("/api/v1/images", image)))
       : [],
-    movie: movie ? await sendFile("/api/v1/movies", movie) : undefined,
+    movie: movie ? await sendFile<UploadedMovie>("/api/v1/movies", movie) : undefined,
     sound: sound ? await sendFile("/api/v1/sounds", sound) : undefined,
     text,
   };
@@ -38,9 +46,10 @@ async function sendNewPost({ images, movie, sound, text }: SubmitParams): Promis
 
 interface Props {
   id: string;
+  openRequestKey?: number;
 }
 
-export const NewPostModalContainer = ({ id }: Props) => {
+export const NewPostModalContainer = ({ id, openRequestKey = 0 }: Props) => {
   const dialogId = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const [resetKey, setResetKey] = useState(0);
@@ -63,6 +72,14 @@ export const NewPostModalContainer = ({ id }: Props) => {
       element.removeEventListener("toggle", handleToggle);
     };
   }, []);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (element == null || openRequestKey === 0 || element.open) {
+      return;
+    }
+    element.showModal();
+  }, [openRequestKey]);
 
   const navigate = useNavigate();
 

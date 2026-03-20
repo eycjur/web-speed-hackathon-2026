@@ -13,6 +13,7 @@ import {
   optimizeImageToWebp,
 } from "@web-speed-hackathon-2026/server/src/utils/optimize_image";
 import { extractImageAlt } from "@web-speed-hackathon-2026/server/src/utils/image_alt";
+import { readImageDimensionsFromBuffer } from "@web-speed-hackathon-2026/server/src/utils/media_dimensions";
 
 const EXTENSION = OPTIMIZED_IMAGE_EXTENSION;
 
@@ -34,12 +35,13 @@ imageRouter.post("/images", async (req, res) => {
 
   const alt = await extractImageAlt(body);
   const converted = await optimizeImageToWebp(body);
+  const dimensions = await readImageDimensionsFromBuffer(converted);
   const imageId = uuidv4();
 
   const filePath = path.resolve(UPLOAD_PATH, `./images/${imageId}.${EXTENSION}`);
   await fs.mkdir(path.resolve(UPLOAD_PATH, "images"), { recursive: true });
   await fs.writeFile(filePath, converted);
-  await Image.create({ alt, id: imageId });
+  await Image.create({ alt, id: imageId, ...dimensions });
 
-  return res.status(200).type("application/json").send({ alt, id: imageId });
+  return res.status(200).type("application/json").send({ alt, id: imageId, ...dimensions });
 });
