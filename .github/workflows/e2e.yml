@@ -6,6 +6,14 @@ on:
 
 jobs:
   e2e:
+    if: >-
+      github.event_name != 'pull_request' ||
+      !(
+        github.event.pull_request.head.repo.owner.login == 'CyberAgentHack' &&
+        github.event.pull_request.head.ref == 'main' &&
+        github.event.pull_request.base.repo.owner.login == 'eycjur' &&
+        github.event.pull_request.base.ref == 'main'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -23,7 +31,7 @@ jobs:
           version: 10.32.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@0a44ba93d8fd1e40751b8df1e8375c101d5d1b0d # v4.4.0
+        uses: actions/setup-node@v4
         with:
           node-version: 24.14.0
           cache: pnpm
