@@ -32,7 +32,7 @@ const config = {
     ],
     static: [PUBLIC_PATH, UPLOAD_PATH],
   },
-  devtool: "inline-source-map",
+  devtool: false,
   entry: {
     main: [
       _resolve(SRC_PATH, "./index.css"),
@@ -40,7 +40,7 @@ const config = {
       _resolve(SRC_PATH, "./index.tsx"),
     ],
   },
-  mode: "none",
+  mode: "production",
   module: {
     rules: [
       {
@@ -73,7 +73,7 @@ const config = {
     chunkFilename: "scripts/chunk-[contenthash].js",
     filename: "scripts/[name].js",
     path: DIST_PATH,
-    publicPath: "auto",
+    publicPath: "/",
     clean: true,
   },
   plugins: [
@@ -99,7 +99,8 @@ const config = {
       ],
     }),
     new HtmlWebpackPlugin({
-      inject: false,
+      inject: "head",
+      scriptLoading: "defer",
       template: _resolve(SRC_PATH, "./index.html"),
     }),
     new webpackBundleAnalyzer.BundleAnalyzerPlugin({
@@ -130,7 +131,24 @@ const config = {
   optimization: {
     minimize: true,
     splitChunks: {
-      chunks: "async",
+      chunks: "all",
+      cacheGroups: {
+        reactVendor: {
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/,
+          name: "vendor-react",
+          chunks: "initial",
+          priority: 20,
+          reuseExistingChunk: true,
+        },
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: "vendor",
+          chunks: "initial",
+          priority: 10,
+          reuseExistingChunk: true,
+          minSize: 20000,
+        },
+      },
     },
     concatenateModules: true,
     usedExports: true,
