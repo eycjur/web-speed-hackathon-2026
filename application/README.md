@@ -11,6 +11,9 @@ CaX のアプリケーションコードです。
    - ```bash
      pnpm install --frozen-lockfile
      ```
+3. 動画・音声投稿をローカルで確認する場合は `ffmpeg` が必要です
+4. よく使うコマンドは `make help` でも確認できます
+5. 翻訳機能を使う場合は `GROQ_API_KEY` または Base64 化した `ENCODED_GROQ_API_KEY` 環境変数が必要です
 
 ### ビルド・起動
 
