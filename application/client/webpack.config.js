@@ -140,11 +140,6 @@ const config = {
         "node_modules",
         "@ffmpeg/core/dist/umd/ffmpeg-core.wasm",
       ),
-      "@imagemagick/magick-wasm/magick.wasm$": _resolve(
-        __dirname,
-        "node_modules",
-        "@imagemagick/magick-wasm/dist/magick.wasm",
-      ),
     },
     fallback: {
       fs: false,
