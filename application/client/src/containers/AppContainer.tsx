@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Helmet, HelmetProvider } from "react-helmet";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
@@ -79,20 +79,38 @@ export const AppContainer = () => {
   }, [pathname]);
 
   const [activeUser, setActiveUser] = useState<Models.User | null>(null);
-  useEffect(() => {
-    void fetchJSON<Models.User>("/api/v1/me")
+  const authStateVersionRef = useRef(0);
+
+  const updateActiveUser = useCallback((user: Models.User | null) => {
+    authStateVersionRef.current += 1;
+    setActiveUser(user);
+  }, []);
+
+  const refreshActiveUser = useCallback(() => {
+    const requestVersion = authStateVersionRef.current;
+
+    return fetchJSON<Models.User>("/api/v1/me")
       .then((user) => {
-        setActiveUser(user);
+        if (requestVersion === authStateVersionRef.current) {
+          setActiveUser(user);
+        }
       })
       .catch(() => {
-        setActiveUser(null);
+        if (requestVersion === authStateVersionRef.current) {
+          setActiveUser(null);
+        }
       });
-  }, [setActiveUser]);
+  }, []);
+
+  useEffect(() => {
+    void refreshActiveUser();
+  }, [refreshActiveUser]);
+
   const handleLogout = useCallback(async () => {
     await sendJSON("/api/v1/signout", {});
-    setActiveUser(null);
+    updateActiveUser(null);
     navigate("/");
-  }, [navigate]);
+  }, [navigate, updateActiveUser]);
 
   const authModalId = useId();
   const newPostModalId = useId();
@@ -136,7 +154,7 @@ export const AppContainer = () => {
         </Suspense>
       </AppPage>
 
-      <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
+      <AuthModalContainer id={authModalId} onUpdateActiveUser={updateActiveUser} />
       <NewPostModalContainer id={newPostModalId} />
     </HelmetProvider>
   );

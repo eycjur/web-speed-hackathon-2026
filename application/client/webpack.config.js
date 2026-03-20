@@ -35,8 +35,6 @@ const config = {
   devtool: "inline-source-map",
   entry: {
     main: [
-      "core-js",
-      "regenerator-runtime/runtime",
       "jquery-binarytransport",
       _resolve(SRC_PATH, "./index.css"),
       _resolve(SRC_PATH, "./buildinfo.ts"),
@@ -124,11 +122,6 @@ const config = {
         __dirname,
         "node_modules",
         "kuromoji/build/kuromoji.js",
-      ),
-      "@imagemagick/magick-wasm/magick.wasm$": _resolve(
-        __dirname,
-        "node_modules",
-        "@imagemagick/magick-wasm/dist/magick.wasm",
       ),
     },
     fallback: {
