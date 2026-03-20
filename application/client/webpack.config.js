@@ -5,7 +5,19 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
-const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
+
+function createBundleAnalyzerPlugin() {
+  if (process.env.ANALYZE !== "true") {
+    return null;
+  }
+
+  try {
+    const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
+    return new BundleAnalyzerPlugin();
+  } catch {
+    return null;
+  }
+}
 
 const SRC_PATH = path.resolve(__dirname, "./src");
 const PUBLIC_PATH = path.resolve(__dirname, "../public");
@@ -104,7 +116,7 @@ const config = {
       inject: false,
       template: path.resolve(SRC_PATH, "./index.html"),
     }),
-    new BundleAnalyzerPlugin(),
+    createBundleAnalyzerPlugin(),
   ],
   resolve: {
     extensions: [".tsx", ".ts", ".mjs", ".cjs", ".jsx", ".js"],
@@ -164,5 +176,7 @@ const config = {
     },
   ],
 };
+
+config.plugins = config.plugins.filter(Boolean);
 
 module.exports = config;
