@@ -57,4 +57,3 @@ https://github.com/CyberAgentHack/web-speed-hackathon-2026/issues/new?template=a
 - Text
   - 太宰治『走れメロス』（1940年）
 
-
