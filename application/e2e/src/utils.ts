@@ -19,15 +19,10 @@ export async function login(
 
 /** ページの読み込みを安定させるための関数 */
 export async function waitForPageToLoad(page: Page): Promise<void> {
-  await page.waitForLoadState("domcontentloaded", { timeout: 30_000 });
-  await page.waitForFunction(() => document.readyState === "complete", undefined, {
-    timeout: 30_000,
-  });
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-  });
-  await page.waitForTimeout(500);
+  // ネットワークがidleになるまで待つ
+  await page.waitForLoadState("networkidle", { timeout: 30_000 });
+  // ページの表示を安定させるため、10秒待つ
+  await page.waitForTimeout(10_000);
 }
 
 /** ビューポート内の全メディア（img/movie/sound）が読み込み完了するまで待つ */
