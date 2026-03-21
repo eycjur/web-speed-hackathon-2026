@@ -121,14 +121,12 @@ export const AppContainer = () => {
   }, []);
 
   useEffect(() => {
-    if (activeUser == null) {
-      return scheduleIdleTask(() => {
-        void loadAuthModalContainer();
-      });
+    if (activeUser != null) {
+      return;
     }
 
     return scheduleIdleTask(() => {
-      void loadNewPostModalContainer();
+      void loadAuthModalContainer();
     });
   }, [activeUser]);
 
