@@ -11,7 +11,7 @@ export class Sound extends Model<InferAttributes<Sound>, InferCreationAttributes
   declare id: string;
   declare title: string;
   declare artist: string;
-  declare waveform: string;
+  declare waveform: number[];
 }
 
 export function initSound(sequelize: Sequelize) {
@@ -49,7 +49,8 @@ export function initSound(sequelize: Sequelize) {
           }
         },
         set(value: unknown) {
-          this.setDataValue("waveform", JSON.stringify(Array.isArray(value) ? value : []));
+          // 内部的にはJSON文字列で保存するが、型はnumber[]として公開する
+          this.setDataValue("waveform", JSON.stringify(Array.isArray(value) ? value : []) as unknown as number[]);
         },
         type: DataTypes.TEXT,
       },

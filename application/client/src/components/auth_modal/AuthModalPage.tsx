@@ -25,13 +25,13 @@ export const AuthModalPage = ({ onRequestCloseModal, onSubmit, resetKey }: Props
   const nameId = useId();
   const passwordId = useId();
   const [values, setValues] = useState<AuthFormData>(initialValues);
-  const [fieldErrors, setFieldErrors] = useState(validate(initialValues));
+  const [fieldErrors, setFieldErrors] = useState<ReturnType<typeof validate>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setValues(initialValues);
-    setFieldErrors(validate(initialValues));
+    setFieldErrors({});
     setSubmitError(null);
     setIsSubmitting(false);
   }, [resetKey]);

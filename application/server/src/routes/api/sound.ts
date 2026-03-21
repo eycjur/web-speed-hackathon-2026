@@ -49,13 +49,13 @@ soundRouter.post("/sounds", async (req, res) => {
   const filePath = path.resolve(UPLOAD_PATH, `./sounds/${soundId}.${EXTENSION}`);
   await fs.mkdir(path.resolve(UPLOAD_PATH, "sounds"), { recursive: true });
   await fs.writeFile(filePath, converted);
-  const waveform = createSoundWaveform(converted);
+  const waveform = await createSoundWaveform(converted);
 
   await Sound.create({
     artist,
     id: soundId,
     title,
-    waveform: JSON.stringify(waveform),
+    waveform: waveform,
   });
 
   return res
