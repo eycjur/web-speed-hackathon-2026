@@ -1,138 +1,119 @@
-import { Worker } from "node:worker_threads";
+import path from "node:path";
 
+import { BM25 } from "bayesian-bm25";
+import kuromoji, { type IpadicFeatures, type Tokenizer } from "kuromoji";
 import { QaSuggestion } from "@web-speed-hackathon-2026/server/src/models";
 
-type WarmupRequest = {
-  type: "warmup";
-  payload: {
-    suggestions: string[];
-  };
-};
+const STOP_POS = new Set(["助詞", "助動詞", "記号"]);
+const DICT_PATH = path.resolve(import.meta.dirname, "../../../public/dicts");
 
-type AnalyzeSentimentRequest = {
-  type: "analyzeSentiment";
-  payload: {
-    text: string;
-  };
-};
+let tokenizerInstance: Tokenizer<IpadicFeatures> | null = null;
+let tokenizerPromise: Promise<Tokenizer<IpadicFeatures>> | null = null;
+let analyzeModulePromise: Promise<(tokens: IpadicFeatures[]) => number> | null = null;
+let suggestionsPromise: Promise<string[]> | null = null;
+let suggestionCandidates: string[] = [];
+let tokenizedSuggestionCandidates: string[][] = [];
 
-type FilterSuggestionsRequest = {
-  type: "filterSuggestions";
-  payload: {
-    query: string;
-  };
-};
+function extractTokens(tokens: IpadicFeatures[]): string[] {
+  return tokens
+    .filter((token) => token.surface_form !== "" && token.pos !== "" && !STOP_POS.has(token.pos))
+    .map((token) => token.surface_form.toLowerCase());
+}
 
-type WorkerRequest = WarmupRequest | AnalyzeSentimentRequest | FilterSuggestionsRequest;
-
-type WorkerResponse =
-  | {
-      id: number;
-      ok: true;
-      result: boolean | string[] | null;
-    }
-  | {
-      id: number;
-      ok: false;
-      error: string;
-    };
-
-let workerInstance: Worker | null = null;
-let requestId = 0;
-const pendingRequests = new Map<
-  number,
-  {
-    reject: (error: Error) => void;
-    resolve: (value: boolean | string[] | null) => void;
-  }
->();
-
-function getWorker(): Worker {
-  if (workerInstance != null) {
-    return workerInstance;
+async function getTokenizer(): Promise<Tokenizer<IpadicFeatures>> {
+  if (tokenizerInstance != null) {
+    return tokenizerInstance;
   }
 
-  const worker = new Worker(new URL("./text_analysis_worker.ts", import.meta.url), {
-    type: "module",
-  });
+  if (tokenizerPromise != null) {
+    return tokenizerPromise;
+  }
 
-  worker.on("message", (message: WorkerResponse) => {
-    const pending = pendingRequests.get(message.id);
-    if (pending == null) {
-      return;
-    }
-    pendingRequests.delete(message.id);
-
-    if (message.ok) {
-      pending.resolve(message.result);
-      return;
-    }
-
-    pending.reject(new Error(message.error));
-  });
-
-  worker.on("error", (error) => {
-    for (const { reject } of pendingRequests.values()) {
-      reject(error);
-    }
-    pendingRequests.clear();
-    workerInstance = null;
-  });
-
-  worker.on("exit", (code) => {
-    if (code !== 0) {
-      const error = new Error(`text analysis worker exited with code ${code}`);
-      for (const { reject } of pendingRequests.values()) {
+  tokenizerPromise = new Promise((resolve, reject) => {
+    kuromoji.builder({ dicPath: DICT_PATH }).build((error, tokenizer) => {
+      if (error != null) {
+        tokenizerPromise = null;
         reject(error);
+        return;
       }
-      pendingRequests.clear();
-    }
-    workerInstance = null;
+
+      tokenizerInstance = tokenizer;
+      resolve(tokenizer);
+    });
   });
 
-  workerInstance = worker;
-  return worker;
+  return tokenizerPromise;
 }
 
-function callWorker(request: WorkerRequest): Promise<boolean | string[] | null> {
-  const worker = getWorker();
-  const id = ++requestId;
+async function getAnalyzeModule(): Promise<(tokens: IpadicFeatures[]) => number> {
+  if (analyzeModulePromise != null) {
+    return analyzeModulePromise;
+  }
 
-  return new Promise((resolve, reject) => {
-    pendingRequests.set(id, { resolve, reject });
-    worker.postMessage({ ...request, id });
-  });
+  analyzeModulePromise = import("negaposi-analyzer-ja").then((module) => module.default);
+  return analyzeModulePromise;
 }
 
-export async function warmupTextAnalysis(): Promise<void> {
-  const suggestions = await QaSuggestion.findAll({
-    attributes: ["question"],
-    logging: false,
-    raw: true,
+async function getSuggestionCandidates(): Promise<string[]> {
+  if (suggestionsPromise != null) {
+    return suggestionsPromise;
+  }
+
+  suggestionsPromise = Promise.all([
+    getTokenizer(),
+    QaSuggestion.findAll({
+      attributes: ["question"],
+      logging: false,
+      raw: true,
+    }),
+  ]).then(([tokenizer, suggestions]) => {
+    suggestionCandidates = suggestions.map((suggestion) => suggestion.question);
+    tokenizedSuggestionCandidates = suggestionCandidates.map((candidate) =>
+      extractTokens(tokenizer.tokenize(candidate)),
+    );
+    return suggestionCandidates;
   });
 
-  await callWorker({
-    type: "warmup",
-    payload: {
-      suggestions: suggestions.map((suggestion) => suggestion.question),
-    },
-  });
+  return suggestionsPromise;
+}
+
+export async function getCrokSuggestions(): Promise<string[]> {
+  return await getSuggestionCandidates();
 }
 
 export async function isNegativeSearchQuery(text: string): Promise<boolean> {
-  const result = await callWorker({
-    type: "analyzeSentiment",
-    payload: { text },
-  });
+  const normalized = text.trim();
+  if (normalized === "") {
+    return false;
+  }
 
-  return result === true;
+  const [tokenizer, analyze] = await Promise.all([getTokenizer(), getAnalyzeModule()]);
+  const score = analyze(tokenizer.tokenize(normalized));
+  return score < -0.1;
 }
 
 export async function filterCrokSuggestions(query: string): Promise<string[]> {
-  const result = await callWorker({
-    type: "filterSuggestions",
-    payload: { query },
-  });
+  const normalized = query.trim();
+  if (normalized === "") {
+    return await getSuggestionCandidates();
+  }
 
-  return Array.isArray(result) ? result : [];
+  const tokenizer = await getTokenizer();
+  const candidates = await getSuggestionCandidates();
+  const queryTokens = extractTokens(tokenizer.tokenize(normalized));
+
+  if (queryTokens.length === 0) {
+    return [];
+  }
+
+  const bm25 = new BM25({ k1: 1.2, b: 0.75 });
+  bm25.index(tokenizedSuggestionCandidates);
+  const scores = bm25.getScores(queryTokens);
+
+  return candidates
+    .map((text, idx) => ({ text, score: scores[idx] ?? 0 }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => a.score - b.score)
+    .slice(-10)
+    .map((entry) => entry.text);
 }

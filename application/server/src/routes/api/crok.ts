@@ -5,8 +5,10 @@ import { fileURLToPath } from "node:url";
 import { Router } from "express";
 import httpErrors from "http-errors";
 
-import { QaSuggestion } from "@web-speed-hackathon-2026/server/src/models";
-import { filterCrokSuggestions } from "@web-speed-hackathon-2026/server/src/utils/text_analysis";
+import {
+  filterCrokSuggestions,
+  getCrokSuggestions,
+} from "@web-speed-hackathon-2026/server/src/utils/text_analysis";
 
 export const crokRouter = Router();
 
@@ -14,12 +16,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const response = fs.readFileSync(path.join(__dirname, "crok-response.md"), "utf-8");
 
 crokRouter.get("/crok/suggestions", async (req, res) => {
-  const all = await QaSuggestion.findAll({ logging: false });
-  const candidates = all.map((s) => s.question);
-
   const q = typeof req.query["q"] === "string" ? req.query["q"].trim() : "";
   if (q === "") {
-    res.json({ suggestions: candidates });
+    res.json({ suggestions: await getCrokSuggestions() });
     return;
   }
 
