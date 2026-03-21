@@ -17,7 +17,7 @@ import { getImageAspectRatio, getMovieAspectRatio } from "@web-speed-hackathon-2
 const isClickedAnchorOrButton = (target: EventTarget | null, currentTarget: Element): boolean => {
   while (target !== null && target instanceof Element) {
     const tagName = target.tagName.toLowerCase();
-    if (["button", "a"].includes(tagName)) {
+    if (tagName === "a" || target.hasAttribute("data-no-post-navigation")) {
       return true;
     }
     if (currentTarget === target) {

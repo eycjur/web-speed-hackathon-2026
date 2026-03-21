@@ -1,27 +1,38 @@
-const NEGATIVE_KEYWORDS = [
-  "つらい",
-  "辛い",
-  "しんどい",
-  "苦しい",
-  "悲しい",
-  "最悪",
-  "嫌",
-  "いや",
-  "無理",
-  "疲れた",
-  "落ち込",
-  "死にたい",
-  "消えたい",
-  "不安",
-  "憂鬱",
-];
+import path from "node:path";
 
-export function isNegativeSearchQuery(text: string): boolean {
-  const normalized = text.trim().toLowerCase();
+let tokenizerPromise: Promise<any> | null = null;
+
+async function getTokenizer() {
+  if (tokenizerPromise != null) {
+    return tokenizerPromise;
+  }
+
+  tokenizerPromise = (async () => {
+    const [{ default: Bluebird }, kuromojiModule] = await Promise.all([
+      import("bluebird"),
+      import("kuromoji"),
+    ]);
+
+    const kuromoji = (kuromojiModule as { default?: any }).default ?? kuromojiModule;
+    const dicPath = path.resolve(import.meta.dirname, "../../../public/dicts");
+    const builder = (Bluebird as any).promisifyAll(kuromoji.builder({ dicPath }));
+    return await builder.buildAsync();
+  })();
+
+  return tokenizerPromise;
+}
+
+export async function isNegativeSearchQuery(text: string): Promise<boolean> {
+  const normalized = text.trim();
   if (normalized === "") {
     return false;
   }
 
-  return NEGATIVE_KEYWORDS.some((keyword) => normalized.includes(keyword.toLowerCase()));
-}
+  const [{ default: analyze }, tokenizer] = await Promise.all([
+    import("negaposi-analyzer-ja"),
+    getTokenizer(),
+  ]);
 
+  const score = analyze(tokenizer.tokenize(normalized));
+  return score < -0.1;
+}

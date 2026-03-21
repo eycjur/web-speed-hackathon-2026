@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 
 import { SearchPage } from "@web-speed-hackathon-2026/client/src/components/application/SearchPage";
@@ -11,21 +12,25 @@ interface SearchResponse {
   posts: Models.Post[];
 }
 
-async function fetchSearchResponses(apiPath: string): Promise<SearchResponse[]> {
-  const response = await fetchJSON<SearchResponse>(apiPath);
-  return [response];
-}
-
 export const SearchContainer = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
+  const [isNegativeQuery, setIsNegativeQuery] = useState(false);
 
-  const { data: responses, fetchMore } = useInfiniteFetch<SearchResponse>(
+  useEffect(() => {
+    setIsNegativeQuery(false);
+  }, [query]);
+
+  const fetchSearchPosts = useCallback(async (apiPath: string): Promise<Models.Post[]> => {
+    const response = await fetchJSON<SearchResponse>(apiPath);
+    setIsNegativeQuery(response.isNegativeQuery);
+    return response.posts;
+  }, []);
+
+  const { data: posts, fetchMore } = useInfiniteFetch<Models.Post>(
     query ? `/api/v1/search?q=${encodeURIComponent(query)}` : "",
-    fetchSearchResponses,
+    fetchSearchPosts,
   );
-  const posts = responses.flatMap((response) => response.posts);
-  const isNegativeQuery = responses[0]?.isNegativeQuery ?? false;
 
   return (
     <InfiniteScroll fetchMore={fetchMore} items={posts}>

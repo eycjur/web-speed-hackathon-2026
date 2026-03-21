@@ -91,7 +91,7 @@ searchRouter.get("/search", async (req, res) => {
   const result = mergedPosts.slice(offset, limit != null ? offset + limit : mergedPosts.length);
 
   return res.status(200).type("application/json").send({
-    isNegativeQuery: isNegativeSearchQuery(keywords),
+    isNegativeQuery: await isNegativeSearchQuery(keywords),
     posts: await augmentPostsResponse(result),
   });
 });

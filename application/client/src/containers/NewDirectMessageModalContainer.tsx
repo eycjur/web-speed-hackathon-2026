@@ -9,9 +9,10 @@ import { fetchJSON, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/
 
 interface Props {
   id: string;
+  openRequestKey?: number;
 }
 
-export const NewDirectMessageModalContainer = ({ id }: Props) => {
+export const NewDirectMessageModalContainer = ({ id, openRequestKey = 0 }: Props) => {
   const ref = useRef<HTMLDialogElement>(null);
   const [resetKey, setResetKey] = useState(0);
   useEffect(() => {
@@ -26,6 +27,14 @@ export const NewDirectMessageModalContainer = ({ id }: Props) => {
       element.removeEventListener("toggle", handleToggle);
     };
   }, [ref]);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (element == null || openRequestKey === 0 || element.open) {
+      return;
+    }
+    element.showModal();
+  }, [openRequestKey]);
 
   const navigate = useNavigate();
 

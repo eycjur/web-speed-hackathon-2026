@@ -66,6 +66,7 @@ export const TranslatableText = ({ text }: Props) => {
       <p>
         <button
           className="text-cax-accent disabled:text-cax-text-subtle hover:underline disabled:cursor-default"
+          data-no-post-navigation
           type="button"
           disabled={state.type === "loading"}
           onClick={handleClick}

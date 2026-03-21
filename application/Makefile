@@ -41,7 +41,7 @@ e2e-install:
 	pnpm --filter "$(E2E_FILTER)" exec playwright install chromium
 
 e2e-test:
-	pnpm --filter "$(E2E_FILTER)" run test
+	pnpm --filter "$(E2E_FILTER)" run test --workers=20
 
 e2e-update:
 	pnpm --filter "$(E2E_FILTER)" run test:update

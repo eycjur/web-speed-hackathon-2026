@@ -31,8 +31,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright Firefox
-        run: pnpm --filter "@web-speed-hackathon-2026/e2e" exec playwright install --with-deps firefox
+      - name: Install Playwright Chrome
+        run: pnpm --filter "@web-speed-hackathon-2026/e2e" exec playwright install --with-deps chrome --workers=20 --timeout=120000
 
       - name: Build application
         run: pnpm run build
