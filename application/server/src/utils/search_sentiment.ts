@@ -1,23 +1,33 @@
 import path from "node:path";
 
-let tokenizerPromise: Promise<any> | null = null;
+import kuromoji, { type IpadicFeatures, type Tokenizer } from "kuromoji";
 
-async function getTokenizer() {
+let tokenizerInstance: Tokenizer<IpadicFeatures> | null = null;
+let tokenizerPromise: Promise<Tokenizer<IpadicFeatures>> | null = null;
+
+async function getTokenizer(): Promise<Tokenizer<IpadicFeatures>> {
+  if (tokenizerInstance != null) {
+    return tokenizerInstance;
+  }
+
   if (tokenizerPromise != null) {
     return tokenizerPromise;
   }
 
-  tokenizerPromise = (async () => {
-    const [{ default: Bluebird }, kuromojiModule] = await Promise.all([
-      import("bluebird"),
-      import("kuromoji"),
-    ]);
+  tokenizerPromise = new Promise((resolve, reject) => {
+    kuromoji
+      .builder({ dicPath: path.resolve(import.meta.dirname, "../../../public/dicts") })
+      .build((error, tokenizer) => {
+        if (error != null) {
+          tokenizerPromise = null;
+          reject(error);
+          return;
+        }
 
-    const kuromoji = (kuromojiModule as { default?: any }).default ?? kuromojiModule;
-    const dicPath = path.resolve(import.meta.dirname, "../../../public/dicts");
-    const builder = (Bluebird as any).promisifyAll(kuromoji.builder({ dicPath }));
-    return await builder.buildAsync();
-  })();
+        tokenizerInstance = tokenizer;
+        resolve(tokenizer);
+      });
+  });
 
   return tokenizerPromise;
 }

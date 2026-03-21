@@ -97,16 +97,32 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
       return;
     }
 
+    let active = true;
     const timer = setTimeout(async () => {
-      const { suggestions: results } = await fetchJSON<{
-        suggestions: string[];
-      }>(`/api/v1/crok/suggestions?q=${encodeURIComponent(trimmed)}`);
-      setQueryTokens(trimmed.toLowerCase().split(/\s+/).filter(Boolean));
-      setSuggestions(results);
-      setShowSuggestions(results.length > 0);
+      try {
+        const { suggestions: results } = await fetchJSON<{
+          suggestions: string[];
+        }>(`/api/v1/crok/suggestions?q=${encodeURIComponent(trimmed)}`);
+        if (!active) {
+          return;
+        }
+        setQueryTokens(trimmed.toLowerCase().split(/\s+/).filter(Boolean));
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch {
+        if (!active) {
+          return;
+        }
+        setSuggestions([]);
+        setQueryTokens([]);
+        setShowSuggestions(false);
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [inputValue]);
 
   const adjustTextareaHeight = () => {

@@ -10,6 +10,7 @@ injectReducer("form", formReducer);
 import { NewDirectMessageModalPage } from "@web-speed-hackathon-2026/client/src/components/direct_message/NewDirectMessageModalPage";
 import { Modal } from "@web-speed-hackathon-2026/client/src/components/modal/Modal";
 import { NewDirectMessageFormData } from "@web-speed-hackathon-2026/client/src/direct_message/types";
+import { FetchError } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 import { sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 
 interface Props {
@@ -51,7 +52,10 @@ export const NewDirectMessageModalContainer = ({ id, openRequestKey = 0 }: Props
         });
         ref.current?.close();
         navigate(`/dm/${conversation.id}`);
-      } catch {
+      } catch (error) {
+        if (error instanceof FetchError && error.status !== 404) {
+          throw error;
+        }
         throw new SubmissionError({
           _error: "ユーザーが見つかりませんでした",
         });

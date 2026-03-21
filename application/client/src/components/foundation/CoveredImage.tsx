@@ -29,6 +29,7 @@ export const CoveredImage = ({ alt, fetchPriority = "auto", loading = "lazy", sr
         fetchPriority={fetchPriority}
         loading={loading}
         src={src}
+        style={{ inset: 0, objectFit: "cover", position: "absolute" }}
       />
 
       <button

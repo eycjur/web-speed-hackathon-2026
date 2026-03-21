@@ -11,6 +11,17 @@ interface SoundMetadata {
   title?: string;
 }
 
+const RIFF_CHUNK_HEADER_SIZE = 8;
+const LIST_TYPE_SIZE = 4;
+
+function readAscii(bytes: Uint8Array, start: number, length: number): string {
+  return Buffer.from(bytes.subarray(start, start + length)).toString("ascii");
+}
+
+function readUint32LE(bytes: Uint8Array, start: number): number {
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(start, true);
+}
+
 async function withTempDir<T>(fn: (dirPath: string) => Promise<T>): Promise<T> {
   const dirPath = await fs.mkdtemp(path.join(tmpdir(), "cax-meta-"));
   try {
@@ -42,9 +53,69 @@ function parseFFmetadata(text: string): Record<string, string> {
   return result;
 }
 
+function parseRiffInfoMetadata(data: Uint8Array): SoundMetadata {
+  if (data.byteLength < 12 || readAscii(data, 0, 4) !== "RIFF" || readAscii(data, 8, 4) !== "WAVE") {
+    return {};
+  }
+
+  const metadata: SoundMetadata = {};
+  let offset = 12;
+
+  while (offset + RIFF_CHUNK_HEADER_SIZE <= data.byteLength) {
+    const chunkId = readAscii(data, offset, 4);
+    const chunkSize = readUint32LE(data, offset + 4);
+    const chunkDataStart = offset + RIFF_CHUNK_HEADER_SIZE;
+    const chunkDataEnd = chunkDataStart + chunkSize;
+
+    if (chunkDataEnd > data.byteLength) {
+      break;
+    }
+
+    if (chunkId === "LIST" && chunkSize >= LIST_TYPE_SIZE && readAscii(data, chunkDataStart, 4) === "INFO") {
+      let infoOffset = chunkDataStart + LIST_TYPE_SIZE;
+
+      while (infoOffset + RIFF_CHUNK_HEADER_SIZE <= chunkDataEnd) {
+        const infoId = readAscii(data, infoOffset, 4);
+        const infoSize = readUint32LE(data, infoOffset + 4);
+        const infoDataStart = infoOffset + RIFF_CHUNK_HEADER_SIZE;
+        const infoDataEnd = infoDataStart + infoSize;
+
+        if (infoDataEnd > chunkDataEnd) {
+          break;
+        }
+
+        const valueBytes = data.subarray(infoDataStart, infoDataEnd);
+        const nulIndex = valueBytes.indexOf(0);
+        const decoded = decodeWithFallback(
+          nulIndex >= 0 ? valueBytes.subarray(0, nulIndex) : valueBytes,
+        ).trim();
+
+        if (decoded !== "") {
+          if (infoId === "IART") {
+            metadata.artist = decoded;
+          } else if (infoId === "INAM") {
+            metadata.title = decoded;
+          }
+        }
+
+        infoOffset = infoDataEnd + (infoSize % 2);
+      }
+    }
+
+    offset = chunkDataEnd + (chunkSize % 2);
+  }
+
+  return metadata;
+}
+
 export async function extractMetadataFromSound(data: Buffer): Promise<SoundMetadata> {
+  const riffMetadata = parseRiffInfoMetadata(data);
+  if (riffMetadata.artist != null && riffMetadata.title != null) {
+    return riffMetadata;
+  }
+
   try {
-    return await withTempDir(async (dirPath) => {
+    const ffmpegMetadata = await withTempDir(async (dirPath) => {
       const inputPath = path.join(dirPath, "input");
       const metaPath = path.join(dirPath, "meta.txt");
 
@@ -62,7 +133,12 @@ export async function extractMetadataFromSound(data: Buffer): Promise<SoundMetad
         title: meta["title"] || undefined,
       };
     });
+
+    return {
+      artist: riffMetadata.artist ?? ffmpegMetadata.artist,
+      title: riffMetadata.title ?? ffmpegMetadata.title,
+    };
   } catch {
-    return { artist: undefined, title: undefined };
+    return riffMetadata;
   }
 }

@@ -3,10 +3,7 @@ import { Link, useNavigate } from "react-router";
 
 import { DeferredMount } from "@web-speed-hackathon-2026/client/src/components/foundation/DeferredMount";
 import { ImageArea } from "@web-speed-hackathon-2026/client/src/components/post/ImageArea";
-import {
-  AspectRatioMediaPlaceholder,
-  SoundMediaPlaceholder,
-} from "@web-speed-hackathon-2026/client/src/components/post/MediaPlaceholder";
+import { AspectRatioMediaPlaceholder } from "@web-speed-hackathon-2026/client/src/components/post/MediaPlaceholder";
 import { MovieArea } from "@web-speed-hackathon-2026/client/src/components/post/MovieArea";
 import { SoundArea } from "@web-speed-hackathon-2026/client/src/components/post/SoundArea";
 import { TranslatableText } from "@web-speed-hackathon-2026/client/src/components/post/TranslatableText";
@@ -132,18 +129,9 @@ export const TimelineItem = ({ post, prioritizeMedia = false }: Props) => {
             )
           ) : null}
           {post.sound ? (
-            prioritizeMedia ? (
-              <div className="relative mt-2 w-full">
-                <SoundArea sound={post.sound} />
-              </div>
-            ) : (
-              <DeferredMount
-                className="relative mt-2 w-full"
-                placeholder={<SoundMediaPlaceholder />}
-              >
-                <SoundArea sound={post.sound} />
-              </DeferredMount>
-            )
+            <div className="relative mt-2 w-full">
+              <SoundArea sound={post.sound} />
+            </div>
           ) : null}
         </div>
       </div>
