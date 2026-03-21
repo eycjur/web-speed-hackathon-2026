@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SubmissionError } from "redux-form";
+import { reducer as formReducer, SubmissionError } from "redux-form";
+
+import { injectReducer } from "@web-speed-hackathon-2026/client/src/store";
+
+// このチャンクが読み込まれた時点でフォームのリデューサーを注入
+injectReducer("form", formReducer);
 
 import { AuthFormData } from "@web-speed-hackathon-2026/client/src/auth/types";
 import { AuthModalPage } from "@web-speed-hackathon-2026/client/src/components/auth_modal/AuthModalPage";

@@ -64,12 +64,23 @@ async function renderHomeIndexHtml(): Promise<string> {
   const firstMovie = posts
     .map((post) => post.get("movie") as { id: string } | null)
     .find((movie) => movie != null);
-  if (firstMovie == null) {
+
+  const tags: string[] = [];
+
+  if (firstMovie != null) {
+    tags.push(`<link rel="preload" as="image" href="/movies/${firstMovie.id}.jpg" fetchpriority="high" />`);
+  }
+
+  // JS 実行前に API レスポンスをブラウザキャッシュに格納しておく
+  // fetch({ credentials: "same-origin" }) と一致させるため crossorigin="use-credentials" を使用
+  tags.push(`<link rel="preload" as="fetch" crossorigin="use-credentials" href="/api/v1/posts?limit=8&offset=0" />`);
+
+  if (tags.length === 0) {
     return clientIndexHtml;
   }
 
-  const preloadTag = `<link rel="preload" as="image" href="/movies/${firstMovie.id}.jpg" fetchpriority="high" />`;
-  return clientIndexHtml.replace("</head>", `    ${preloadTag}\n  </head>`);
+  const tagsHtml = tags.map((t) => `    ${t}`).join("\n");
+  return clientIndexHtml.replace("</head>", `${tagsHtml}\n  </head>`);
 }
 
 function serializeForHtml(value: unknown): string {

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
+import { reducer as formReducer } from "redux-form";
+
+import { injectReducer } from "@web-speed-hackathon-2026/client/src/store";
+
+// このチャンクが読み込まれた時点でフォームのリデューサーを注入
+injectReducer("form", formReducer);
 
 import { SearchPage } from "@web-speed-hackathon-2026/client/src/components/application/SearchPage";
 import { InfiniteScroll } from "@web-speed-hackathon-2026/client/src/components/foundation/InfiniteScroll";
