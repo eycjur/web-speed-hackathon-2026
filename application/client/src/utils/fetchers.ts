@@ -37,7 +37,7 @@ async function parseErrorBody(response: Response): Promise<unknown> {
 
 async function request(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const response = await fetch(input, {
-    credentials: "same-origin",
+    credentials: "include",
     ...init,
   });
 

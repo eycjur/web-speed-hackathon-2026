@@ -1,5 +1,6 @@
 /// <reference types="webpack-dev-server" />
 import { resolve as _resolve } from "path";
+import { brotliCompressSync, constants as zlibConstants } from "node:zlib";
 
 import CopyWebpackPlugin from "copy-webpack-plugin";
 import HtmlWebpackPlugin from "html-webpack-plugin";
@@ -94,6 +95,42 @@ const minifyCss = (css) => {
 
   return result.replace(/\s*([{}:;,>~,])\s*/g, "$1").replace(/;}/g, "}");
 };
+
+/** ビルド時に JS / CSS を Brotli quality=11 で事前圧縮し .br ファイルを生成する */
+class BrotliPrecompressPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap("BrotliPrecompressPlugin", (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: "BrotliPrecompressPlugin",
+          stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
+        },
+        (assets) => {
+          for (const assetName of Object.keys(assets)) {
+            if (!assetName.endsWith(".js") && !assetName.endsWith(".css")) {
+              continue;
+            }
+            const asset = compilation.getAsset(assetName);
+            if (asset == null) continue;
+
+            const content = asset.source.source();
+            const buffer = Buffer.isBuffer(content)
+              ? content
+              : Buffer.from(String(content), "utf8");
+
+            const compressed = brotliCompressSync(buffer, {
+              params: {
+                [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
+                [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
+              },
+            });
+            compilation.emitAsset(`${assetName}.br`, new sources.RawSource(compressed, false));
+          }
+        },
+      );
+    });
+  }
+}
 
 class CssMinifyPlugin {
   apply(compiler) {
@@ -203,6 +240,7 @@ const config = {
       filename: "styles/[name].css",
     }),
     new CssMinifyPlugin(),
+    new BrotliPrecompressPlugin(),
     new CopyWebpackPlugin({
       patterns: [
         {

@@ -1,6 +1,7 @@
 import history from "connect-history-api-fallback";
 import fs from "node:fs";
 import { Router } from "express";
+import type { NextFunction, Request, Response } from "express";
 import serveStatic from "serve-static";
 import path from "node:path";
 
@@ -63,12 +64,23 @@ async function renderHomeIndexHtml(): Promise<string> {
   const firstMovie = posts
     .map((post) => post.get("movie") as { id: string } | null)
     .find((movie) => movie != null);
-  if (firstMovie == null) {
+
+  const tags: string[] = [];
+
+  if (firstMovie != null) {
+    tags.push(`<link rel="preload" as="image" href="/movies/${firstMovie.id}.jpg" fetchpriority="high" />`);
+  }
+
+  // JS 実行前に API レスポンスをブラウザキャッシュに格納しておく
+  // fetch({ credentials: "same-origin" }) と一致させるため crossorigin="use-credentials" を使用
+  tags.push(`<link rel="preload" as="fetch" crossorigin="use-credentials" href="/api/v1/posts?limit=8&offset=0" />`);
+
+  if (tags.length === 0) {
     return clientIndexHtml;
   }
 
-  const preloadTag = `<link rel="preload" as="image" href="/movies/${firstMovie.id}.jpg" fetchpriority="high" />`;
-  return clientIndexHtml.replace("</head>", `    ${preloadTag}\n  </head>`);
+  const tagsHtml = tags.map((t) => `    ${t}`).join("\n");
+  return clientIndexHtml.replace("</head>", `${tagsHtml}\n  </head>`);
 }
 
 function serializeForHtml(value: unknown): string {
@@ -124,6 +136,35 @@ staticRouter.get("/posts/:postId", async (req, res, next) => {
 
 // SPA 対応のため、ファイルが存在しないときに index.html を返す
 staticRouter.use(history());
+
+// ビルド時に生成した Brotli 事前圧縮ファイルを優先配信する
+staticRouter.use((req: Request, res: Response, next: NextFunction) => {
+  const acceptEncoding = req.headers["accept-encoding"] ?? "";
+  if (!acceptEncoding.includes("br")) {
+    return next();
+  }
+
+  const urlPath = req.path;
+  if (!/\.(js|css)$/.test(urlPath)) {
+    return next();
+  }
+
+  const brPath = path.join(CLIENT_DIST_PATH, urlPath + ".br");
+  if (!fs.existsSync(brPath)) {
+    return next();
+  }
+
+  const originalPath = path.join(CLIENT_DIST_PATH, urlPath);
+  setStaticCacheControl(res, originalPath);
+  res.setHeader("Content-Encoding", "br");
+  res.setHeader(
+    "Content-Type",
+    urlPath.endsWith(".js") ? "application/javascript; charset=utf-8" : "text/css; charset=utf-8",
+  );
+  res.setHeader("Vary", "Accept-Encoding");
+  res.setHeader("Content-Length", fs.statSync(brPath).size);
+  res.end(fs.readFileSync(brPath));
+});
 
 staticRouter.use(
   serveStatic(UPLOAD_PATH, {

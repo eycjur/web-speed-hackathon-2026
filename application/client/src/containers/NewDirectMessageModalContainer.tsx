@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { SubmissionError } from "redux-form";
+import { reducer as formReducer, SubmissionError } from "redux-form";
+
+import { injectReducer } from "@web-speed-hackathon-2026/client/src/store";
+
+// このチャンクが読み込まれた時点でフォームのリデューサーを注入
+injectReducer("form", formReducer);
 
 import { NewDirectMessageModalPage } from "@web-speed-hackathon-2026/client/src/components/direct_message/NewDirectMessageModalPage";
 import { Modal } from "@web-speed-hackathon-2026/client/src/components/modal/Modal";
