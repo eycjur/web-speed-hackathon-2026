@@ -34,6 +34,8 @@ export const DirectMessageContainer = ({ activeUser, onRequestAuthModal }: Props
 
   const [isPeerTyping, setIsPeerTyping] = useState(false);
   const peerTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialReadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasSentInitialReadRef = useRef<string | null>(null);
 
   const loadConversation = useCallback(async () => {
     if (activeUser == null) {
@@ -61,10 +63,38 @@ export const DirectMessageContainer = ({ activeUser, onRequestAuthModal }: Props
 
   useEffect(() => {
     void loadConversation();
-    if (activeUser != null) {
-      void sendRead();
+  }, [activeUser, loadConversation]);
+
+  useEffect(() => {
+    hasSentInitialReadRef.current = null;
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (
+      activeUser == null ||
+      conversation == null ||
+      hasSentInitialReadRef.current === conversation.id
+    ) {
+      return;
     }
-  }, [activeUser, loadConversation, sendRead]);
+
+    const frameId = window.requestAnimationFrame(() => {
+      const timeoutId = window.setTimeout(() => {
+        hasSentInitialReadRef.current = conversation.id;
+        void sendRead();
+      }, 0);
+
+      initialReadTimeoutRef.current = timeoutId;
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      if (initialReadTimeoutRef.current !== null) {
+        window.clearTimeout(initialReadTimeoutRef.current);
+        initialReadTimeoutRef.current = null;
+      }
+    };
+  }, [activeUser, conversation, sendRead]);
 
   const handleSubmit = useCallback(
     async (params: DirectMessageFormData) => {
@@ -73,7 +103,7 @@ export const DirectMessageContainer = ({ activeUser, onRequestAuthModal }: Props
         await sendJSON(`/api/v1/dm/${conversationId}/messages`, {
           body: params.body,
         });
-        loadConversation();
+        await loadConversation();
       } finally {
         setIsSubmitting(false);
       }

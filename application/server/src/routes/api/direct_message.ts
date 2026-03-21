@@ -222,7 +222,7 @@ directMessageRouter.get("/dm/:conversationId", async (req, res) => {
     throw new httpErrors.Unauthorized();
   }
 
-  const conversation = await DirectMessageConversation.unscoped().findOne({
+  const conversationPromise = DirectMessageConversation.unscoped().findOne({
     where: {
       id: req.params.conversationId,
       [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }],
@@ -232,16 +232,16 @@ directMessageRouter.get("/dm/:conversationId", async (req, res) => {
       { association: "member", include: [{ association: "profileImage" }] },
     ],
   });
-  if (conversation === null) {
-    throw new httpErrors.NotFound();
-  }
-
-  const messages = await DirectMessage.findAll({
+  const messagesPromise = DirectMessage.findAll({
     where: {
-      conversationId: conversation.id,
+      conversationId: req.params.conversationId,
     },
     order: [["createdAt", "ASC"]],
   });
+  const [conversation, messages] = await Promise.all([conversationPromise, messagesPromise]);
+  if (conversation === null) {
+    throw new httpErrors.NotFound();
+  }
 
   return res
     .status(200)

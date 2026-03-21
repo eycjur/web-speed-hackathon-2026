@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SubmissionError } from "redux-form";
 
 import { AuthFormData } from "@web-speed-hackathon-2026/client/src/auth/types";
 import { AuthModalPage } from "@web-speed-hackathon-2026/client/src/components/auth_modal/AuthModalPage";
@@ -84,7 +83,7 @@ export const AuthModalContainer = ({ id, onUpdateActiveUser, openRequestKey = 0 
   }, [ref]);
 
   const handleSubmit = useCallback(
-    async (values: AuthFormData) => {
+    async (values: AuthFormData): Promise<string | null> => {
       try {
         if (values.type === "signup") {
           const user = await sendJSON<Models.User>("/api/v1/signup", values);
@@ -93,24 +92,20 @@ export const AuthModalContainer = ({ id, onUpdateActiveUser, openRequestKey = 0 
           const user = await sendJSON<Models.User>("/api/v1/signin", values);
           onUpdateActiveUser(user);
         }
-        handleRequestCloseModal();
+        return null;
       } catch (err: unknown) {
-        const error =
-          err instanceof FetchError ? getErrorCode(err, values.type) : "認証に失敗しました";
-        throw new SubmissionError({
-          _error: error,
-        });
+        return err instanceof FetchError ? getErrorCode(err, values.type) : "認証に失敗しました";
       }
     },
-    [handleRequestCloseModal, onUpdateActiveUser],
+    [onUpdateActiveUser],
   );
 
   return (
     <Modal id={id} ref={ref} closedby="any">
       <AuthModalPage
-        key={resetKey}
-        onRequestCloseModal={handleRequestCloseModal}
         onSubmit={handleSubmit}
+        onRequestCloseModal={handleRequestCloseModal}
+        resetKey={resetKey}
       />
     </Modal>
   );
