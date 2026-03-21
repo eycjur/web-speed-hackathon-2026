@@ -49,7 +49,7 @@ async function backfillSoundWaveforms() {
     }
 
     try {
-      sound.waveform = JSON.stringify(await getSoundWaveform(sound.id));
+      sound.waveform = await getSoundWaveform(sound.id);
       await sound.save({ fields: ["waveform"] });
     } catch {
       continue;

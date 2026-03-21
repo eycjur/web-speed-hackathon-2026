@@ -1,39 +1,61 @@
+import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import { PUBLIC_PATH, UPLOAD_PATH } from "@web-speed-hackathon-2026/server/src/paths";
 
+const execFileAsync = promisify(execFile);
 const waveformCache = new Map<string, number[]>();
 
-function calculateWaveform(bytes: Uint8Array): number[] {
-  const bucketCount = 100;
-  if (bytes.length === 0) {
-    return [];
+// MP3等の圧縮音声をffmpegでf32le（32bit float）モノラルPCMにデコードする。
+// 波形計算にのみ使うため低サンプルレート(8000Hz)で高速化する。
+async function decodeToPcmF32(data: Buffer): Promise<Float32Array> {
+  const dirPath = await fs.mkdtemp(path.join(tmpdir(), "cax-wave-"));
+  try {
+    const inputPath = path.join(dirPath, "input");
+    const outputPath = path.join(dirPath, "output.raw");
+    await fs.writeFile(inputPath, data);
+    await execFileAsync("ffmpeg", [
+      "-y", "-i", inputPath,
+      "-f", "f32le",
+      "-ac", "1",
+      "-ar", "8000",
+      outputPath,
+    ]);
+    const raw = await fs.readFile(outputPath);
+    return new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+  } finally {
+    await fs.rm(dirPath, { force: true, recursive: true });
   }
+}
 
-  const chunkSize = Math.max(1, Math.floor(bytes.length / bucketCount));
+function calculateWaveform(samples: Float32Array): number[] {
+  const bucketCount = 100;
+  if (samples.length === 0) return [];
+
+  const chunkSize = Math.max(1, Math.floor(samples.length / bucketCount));
   const peaks: number[] = [];
 
-  for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
-    const start = bucketIndex * chunkSize;
-    if (start >= bytes.length) {
-      break;
-    }
+  for (let i = 0; i < bucketCount; i++) {
+    const start = i * chunkSize;
+    if (start >= samples.length) break;
+    const end = Math.min(samples.length, start + chunkSize);
 
-    const end = Math.min(bytes.length, start + chunkSize);
     let sum = 0;
-    for (let index = start; index < end; index += 1) {
-      sum += Math.abs(bytes[index]! - 128);
+    for (let j = start; j < end; j++) {
+      sum += Math.abs(samples[j]!);
     }
-
-    peaks.push(sum / (end - start) / 128);
+    peaks.push(sum / (end - start));
   }
 
   return peaks;
 }
 
-export function createSoundWaveform(data: Uint8Array<ArrayBufferLike>): number[] {
-  return calculateWaveform(data);
+export async function createSoundWaveform(data: Buffer): Promise<number[]> {
+  const samples = await decodeToPcmF32(data);
+  return calculateWaveform(samples);
 }
 
 async function resolveSoundFilePath(soundId: string): Promise<string> {
@@ -62,7 +84,8 @@ export async function getSoundWaveform(soundId: string): Promise<number[]> {
 
   const filePath = await resolveSoundFilePath(soundId);
   const data = await fs.readFile(filePath);
-  const waveform = calculateWaveform(data);
+  const samples = await decodeToPcmF32(data);
+  const waveform = calculateWaveform(samples);
   waveformCache.set(soundId, waveform);
   return waveform;
 }

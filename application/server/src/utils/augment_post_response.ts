@@ -17,7 +17,7 @@ async function augmentPost(
   if (
     sound?.id != null &&
     typeof sound.id === "string" &&
-    Array.isArray(sound["waveform"]) === false
+    !(Array.isArray(sound["waveform"]) && (sound["waveform"] as unknown[]).length > 0)
   ) {
     sound["waveform"] = await getSoundWaveform(sound.id).catch(() => []);
   }

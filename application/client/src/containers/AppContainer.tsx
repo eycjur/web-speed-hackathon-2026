@@ -3,7 +3,6 @@ import { Helmet, HelmetProvider } from "react-helmet";
 import { Route, Routes, useLocation } from "react-router";
 
 import { AppPage } from "@web-speed-hackathon-2026/client/src/components/application/AppPage";
-import { TimelineContainer } from "@web-speed-hackathon-2026/client/src/containers/TimelineContainer";
 import { useAuthSession } from "@web-speed-hackathon-2026/client/src/hooks/use_auth_session";
 
 const loadAuthModalContainer = () =>
@@ -52,6 +51,11 @@ const LazyPostContainer = lazy(async () => {
 const LazySearchContainer = lazy(async () => {
   const module = await import("@web-speed-hackathon-2026/client/src/containers/SearchContainer");
   return { default: module.SearchContainer };
+});
+
+const LazyTimelineContainer = lazy(async () => {
+  const module = await import("@web-speed-hackathon-2026/client/src/containers/TimelineContainer");
+  return { default: module.TimelineContainer };
 });
 
 const LazyTermContainer = lazy(async () => {
@@ -121,14 +125,12 @@ export const AppContainer = () => {
   }, []);
 
   useEffect(() => {
-    if (activeUser == null) {
-      return scheduleIdleTask(() => {
-        void loadAuthModalContainer();
-      });
+    if (activeUser != null) {
+      return;
     }
 
     return scheduleIdleTask(() => {
-      void loadNewPostModalContainer();
+      void loadAuthModalContainer();
     });
   }, [activeUser]);
 
@@ -142,7 +144,7 @@ export const AppContainer = () => {
       >
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route element={<TimelineContainer />} path="/" />
+            <Route element={<LazyTimelineContainer />} path="/" />
             <Route
               element={
                 <LazyDirectMessageListContainer
