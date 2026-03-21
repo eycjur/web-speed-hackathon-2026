@@ -1,14 +1,19 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Sequelize } from "sequelize";
 
 import { initModels, Sound } from "@web-speed-hackathon-2026/server/src/models";
 import { DATABASE_PATH } from "@web-speed-hackathon-2026/server/src/paths";
-import { getSoundWaveform } from "@web-speed-hackathon-2026/server/src/utils/sound_waveform";
+import type { SoundSeed } from "@web-speed-hackathon-2026/server/src/types/seed";
 
 let _sequelize: Sequelize | null = null;
+let _seedWaveforms: Map<string, number[]> | null = null;
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SOUND_SEED_PATH = path.resolve(__dirname, "../seeds/sounds.jsonl");
 
 async function createRuntimeIndexes(sequelize: Sequelize) {
   await sequelize.query(
@@ -37,7 +42,32 @@ async function ensureSoundWaveformColumn(sequelize: Sequelize) {
   await sequelize.query("ALTER TABLE Sounds ADD COLUMN waveform TEXT NOT NULL DEFAULT '[]'");
 }
 
+async function getSeedWaveforms() {
+  if (_seedWaveforms != null) {
+    return _seedWaveforms;
+  }
+
+  const content = await fs.readFile(SOUND_SEED_PATH, "utf8");
+  const waveforms = new Map<string, number[]>();
+
+  for (const line of content.split("\n")) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0) {
+      continue;
+    }
+
+    const sound = JSON.parse(trimmedLine) as SoundSeed;
+    if (Array.isArray(sound.waveform) && sound.waveform.length > 0) {
+      waveforms.set(sound.id, sound.waveform);
+    }
+  }
+
+  _seedWaveforms = waveforms;
+  return waveforms;
+}
+
 async function backfillSoundWaveforms() {
+  const seedWaveforms = await getSeedWaveforms();
   const sounds = await Sound.findAll({
     attributes: ["id", "waveform"],
   });
@@ -48,12 +78,13 @@ async function backfillSoundWaveforms() {
       continue;
     }
 
-    try {
-      sound.waveform = await getSoundWaveform(sound.id);
-      await sound.save({ fields: ["waveform"] });
-    } catch {
+    const seedWaveform = seedWaveforms.get(sound.id);
+    if (seedWaveform == null || seedWaveform.length === 0) {
       continue;
     }
+
+    sound.waveform = seedWaveform;
+    await sound.save({ fields: ["waveform"] });
   }
 }
 

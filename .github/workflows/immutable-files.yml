@@ -28,7 +28,8 @@ jobs:
           mapfile -t CHANGED_FILES < <(
             git diff --name-only "${BASE_REF}...HEAD" -- \
               fly.toml \
-              application/e2e/src
+              application/e2e/src \
+              scoring-tool/src
           )
 
           if [[ ${#CHANGED_FILES[@]} -gt 0 ]]; then
