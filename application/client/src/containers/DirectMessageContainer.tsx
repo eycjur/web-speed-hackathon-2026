@@ -73,7 +73,7 @@ export const DirectMessageContainer = ({ activeUser, onRequestAuthModal }: Props
         await sendJSON(`/api/v1/dm/${conversationId}/messages`, {
           body: params.body,
         });
-        await loadConversation();
+        void loadConversation();
       } finally {
         setIsSubmitting(false);
       }

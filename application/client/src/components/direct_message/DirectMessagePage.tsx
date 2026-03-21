@@ -68,8 +68,11 @@ export const DirectMessagePage = ({
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      void onSubmit({ body: text.trim() }).then(() => {
-        setText("");
+      const submittedText = text.trim();
+      void onSubmit({ body: submittedText }).then(() => {
+        setText((currentText) => {
+          return currentText.trim() === submittedText ? "" : currentText;
+        });
       });
     },
     [onSubmit, text],

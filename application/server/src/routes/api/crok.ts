@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { Router } from "express";
 import httpErrors from "http-errors";
+import { QaSuggestion } from "@web-speed-hackathon-2026/server/src/models";
 
 import {
   filterCrokSuggestions,
-  getCrokSuggestions,
 } from "@web-speed-hackathon-2026/server/src/utils/text_analysis";
 
 export const crokRouter = Router();
@@ -18,7 +18,8 @@ const response = fs.readFileSync(path.join(__dirname, "crok-response.md"), "utf-
 crokRouter.get("/crok/suggestions", async (req, res) => {
   const q = typeof req.query["q"] === "string" ? req.query["q"].trim() : "";
   if (q === "") {
-    res.json({ suggestions: await getCrokSuggestions() });
+    const all = await QaSuggestion.findAll({ logging: false });
+    res.json({ suggestions: all.map((suggestion) => suggestion.question) });
     return;
   }
 
