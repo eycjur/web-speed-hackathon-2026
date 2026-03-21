@@ -1,6 +1,7 @@
 import history from "connect-history-api-fallback";
 import fs from "node:fs";
 import { Router } from "express";
+import type { NextFunction, Request, Response } from "express";
 import serveStatic from "serve-static";
 import path from "node:path";
 
@@ -124,6 +125,35 @@ staticRouter.get("/posts/:postId", async (req, res, next) => {
 
 // SPA 対応のため、ファイルが存在しないときに index.html を返す
 staticRouter.use(history());
+
+// ビルド時に生成した Brotli 事前圧縮ファイルを優先配信する
+staticRouter.use((req: Request, res: Response, next: NextFunction) => {
+  const acceptEncoding = req.headers["accept-encoding"] ?? "";
+  if (!acceptEncoding.includes("br")) {
+    return next();
+  }
+
+  const urlPath = req.path;
+  if (!/\.(js|css)$/.test(urlPath)) {
+    return next();
+  }
+
+  const brPath = path.join(CLIENT_DIST_PATH, urlPath + ".br");
+  if (!fs.existsSync(brPath)) {
+    return next();
+  }
+
+  const originalPath = path.join(CLIENT_DIST_PATH, urlPath);
+  setStaticCacheControl(res, originalPath);
+  res.setHeader("Content-Encoding", "br");
+  res.setHeader(
+    "Content-Type",
+    urlPath.endsWith(".js") ? "application/javascript; charset=utf-8" : "text/css; charset=utf-8",
+  );
+  res.setHeader("Vary", "Accept-Encoding");
+  res.setHeader("Content-Length", fs.statSync(brPath).size);
+  res.end(fs.readFileSync(brPath));
+});
 
 staticRouter.use(
   serveStatic(UPLOAD_PATH, {
