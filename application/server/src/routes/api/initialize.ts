@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { Router } from "express";
 
 import { UPLOAD_PATH } from "@web-speed-hackathon-2026/server/src/paths";
+import { warmupTextAnalysis } from "@web-speed-hackathon-2026/server/src/utils/text_analysis";
 
 import { initializeSequelize } from "../../sequelize";
 import { sessionStore } from "../../session";
@@ -12,6 +13,7 @@ export const initializeRouter = Router();
 initializeRouter.post("/initialize", async (_req, res) => {
   // DBリセット
   await initializeSequelize();
+  await warmupTextAnalysis();
   // sessionStoreをクリア
   sessionStore.clear();
   // uploadディレクトリをクリア
