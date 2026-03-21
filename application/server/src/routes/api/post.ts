@@ -71,5 +71,7 @@ postRouter.post("/posts", async (req, res) => {
     throw new httpErrors.InternalServerError();
   }
 
-  return res.status(200).type("application/json").send(await augmentPostResponse(createdPost));
+  return res.status(200).type("application/json").send(
+    await augmentPostResponse(createdPost, { hydrateSoundWaveform: false }),
+  );
 });

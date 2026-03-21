@@ -8,13 +8,20 @@ type JsonPost = Record<string, unknown> & {
   sound?: (Record<string, unknown> & { id?: string }) | null;
 };
 
+interface Options {
+  hydrateSoundWaveform?: boolean;
+}
+
 async function augmentPost(
   post: PostWithOptionalSound,
+  options?: Options,
 ): Promise<JsonPost> {
   const jsonPost = post.toJSON() as JsonPost;
   const sound = jsonPost.sound;
+  const shouldHydrateSoundWaveform = options?.hydrateSoundWaveform ?? true;
 
   if (
+    shouldHydrateSoundWaveform &&
     sound?.id != null &&
     typeof sound.id === "string" &&
     !(Array.isArray(sound["waveform"]) && (sound["waveform"] as unknown[]).length > 0)
@@ -29,6 +36,6 @@ export async function augmentPostsResponse(posts: PostWithOptionalSound[]): Prom
   return await Promise.all(posts.map((post) => augmentPost(post)));
 }
 
-export async function augmentPostResponse(post: PostWithOptionalSound): Promise<JsonPost> {
-  return await augmentPost(post);
+export async function augmentPostResponse(post: PostWithOptionalSound, options?: Options): Promise<JsonPost> {
+  return await augmentPost(post, options);
 }

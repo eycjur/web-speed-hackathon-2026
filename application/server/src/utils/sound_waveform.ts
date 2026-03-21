@@ -31,7 +31,7 @@ async function decodeToPcmF32(data: Buffer): Promise<Float32Array> {
   }
 }
 
-function calculateWaveform(samples: Float32Array): number[] {
+export function calculateWaveform(samples: Float32Array): number[] {
   const bucketCount = 100;
   if (samples.length === 0) return [];
 

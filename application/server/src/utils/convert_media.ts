@@ -113,3 +113,44 @@ export async function convertSoundToMp3(
     return fs.readFile(outputPath);
   });
 }
+
+export async function convertSoundToMp3AndPcm(
+  data: Buffer,
+  metadata: SoundMetadata,
+): Promise<{ mp3: Buffer; pcm: Float32Array }> {
+  return withTempDir(async (dirPath) => {
+    const inputPath = path.join(dirPath, "input");
+    const mp3Path = path.join(dirPath, "output.mp3");
+    const pcmPath = path.join(dirPath, "output.raw");
+
+    await fs.writeFile(inputPath, data);
+
+    // 1回のffmpeg呼び出しでMP3とPCM(波形用)を同時出力する
+    await runFfmpeg([
+      "-y",
+      "-i", inputPath,
+      // MP3出力
+      "-map", "0:a",
+      "-metadata", `artist=${metadata.artist}`,
+      "-metadata", `title=${metadata.title}`,
+      "-vn",
+      mp3Path,
+      // PCM出力（波形計算用：モノラル8kHz f32le）
+      "-map", "0:a",
+      "-f", "f32le",
+      "-ac", "1",
+      "-ar", "8000",
+      pcmPath,
+    ]);
+
+    const [mp3, raw] = await Promise.all([
+      fs.readFile(mp3Path),
+      fs.readFile(pcmPath),
+    ]);
+
+    return {
+      mp3,
+      pcm: new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4),
+    };
+  });
+}
